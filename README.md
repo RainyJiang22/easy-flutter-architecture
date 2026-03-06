@@ -1,6 +1,7 @@
 # Flutter通用架构
 
-基于实际项目实践与 Flutter 官方建议的**分层架构**：表现层 → 领域层（可选）→ 数据层 → 核心层，配合 Material 3、Riverpod/Bloc、GoRouter、Dio 等最新方案，可直接用于生产项目。
+基于实际项目实践与 Flutter 官方建议的**分层架构**：表现层 → 领域层（可选）→ 数据层 → 核心层，配合
+Material 3、Riverpod/Bloc、GoRouter、Dio 等最新方案，结合ai工作流生成一套可直接用于生产项目的通用架构。
 
 ---
 
@@ -30,14 +31,14 @@
 
 ## 技术栈与选型
 
-| 层级     | 推荐方案 |
-|----------|----------|
-| UI / 主题 | Flutter 3.x · Material 3 · Sliver/CustomScrollView |
-| 状态管理 | **Riverpod 2.x** 或 **Bloc 8.x**（二选一，全项目统一） |
-| 路由     | **GoRouter 2.x**（声明式、深链、ShellRoute） |
-| 网络     | **Dio** + 单例 Client + 拦截器链；可选 dio_retrofit/chopper 强类型 API |
-| 本地存储 | 抽象接口 + shared_preferences / Hive / Isar；敏感数据用 flutter_secure_storage |
-| 依赖注入 | Riverpod 或 get_it + injectable |
+| 层级      | 推荐方案                                                                 |
+|---------|----------------------------------------------------------------------|
+| UI / 主题 | Flutter 3.x · Material 3 · Sliver/CustomScrollView                   |
+| 状态管理    | **Riverpod 2.x** 或 **Bloc 8.x**（二选一，全项目统一）                           |
+| 路由      | **GoRouter 2.x**（声明式、深链、ShellRoute）                                  |
+| 网络      | **Dio** + 单例 Client + 拦截器链；可选 dio_retrofit/chopper 强类型 API           |
+| 本地存储    | 抽象接口 + shared_preferences / Hive / Isar；敏感数据用 flutter_secure_storage |
+| 依赖注入    | Riverpod 或 get_it + injectable                                       |
 
 ---
 
@@ -63,7 +64,9 @@ lib/
 - **可扩展**：新功能以 feature 接入，公共能力沉淀到 core/shared。
 - **生产可用**：统一 Loading/Empty/Error、主题与无障碍；网络超时/重试/错误统一；UI 不裸调 Dio/DB。
 
-详细规范见 **[docs/ai-context/flutter-architecture-requirements.md](docs/ai-context/flutter-architecture-requirements.md)**（分层、UI、网络、存储、状态与路由、工程与可交付物）。
+详细规范见 *
+*[docs/ai-context/flutter-architecture-requirements.md](docs/ai-context/flutter-architecture-requirements.md)
+**（分层、UI、网络、存储、状态与路由、工程与可交付物）。
 
 ---
 
