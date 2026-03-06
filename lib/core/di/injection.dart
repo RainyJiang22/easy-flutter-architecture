@@ -5,6 +5,8 @@ import '../network/dio_client.dart';
 import '../storage/secure_storage_impl.dart';
 import '../storage/shared_prefs_storage.dart';
 import '../storage/storage_interface.dart';
+import '../../features/user/data/repositories/user_repository_impl.dart';
+import '../../features/user/domain/repositories/user_repository.dart';
 
 /// 全局服务定位器
 final getIt = GetIt.instance;
@@ -24,21 +26,22 @@ Future<void> configureDependencies({
   // 2. 注册存储层
   await _registerStorageServices();
 
-  // 3. 注册其他核心服务
-  // TODO: 根据需要添加更多服务
+  // 3. 注册业务层服务
+  _registerDomainServices();
 
-  // 4. 注册业务层服务
-  // TODO: 注册 Repository、UseCase 等
+  // 4. 注册其他核心服务
+  // TODO: 根据需要添加更多服务
 }
 
 /// 注册网络层服务
 void _registerNetworkServices({String? baseUrl}) {
   // 注册 DioClient 单例
-  getIt..registerSingleton<DioClient>(
+  getIt.registerSingleton<DioClient>(
     DioClient()..initialize(baseUrl: baseUrl),
-  )
+  );
+
   // 注册 ApiClient 单例
-  ..registerSingleton<IApiClient>(
+  getIt.registerSingleton<IApiClient>(
     ApiClient(dio: getIt<DioClient>().dio),
   );
 }
@@ -49,13 +52,20 @@ Future<void> _registerStorageServices() async {
   final sharedPreferences = await SharedPreferences.getInstance();
 
   // 注册 SharedPreferences 存储
-  getIt..registerSingleton<IKVStorage>(
+  getIt.registerSingleton<IKVStorage>(
     SharedPrefsStorage(sharedPreferences),
-  )
+  );
+
   // 注册安全存储
-  ..registerSingleton<ISecureStorage>(
+  getIt.registerSingleton<ISecureStorage>(
     SecureStorageImpl(),
   );
+}
+
+/// 注册业务层服务
+void _registerDomainServices() {
+  // 注册用户 Repository
+  getIt.registerSingleton<UserRepository>(UserRepositoryImpl());
 }
 
 /// 重置依赖注入（主要用于测试）
