@@ -13,16 +13,42 @@ class DioClient {
   /// 获取单例实例
   factory DioClient() => _instance;
 
-  late final Dio _dio;
+  Dio? _dio;
 
   /// 获取 Dio 实例
-  Dio get dio => _dio;
+  Dio get dio => _dio ??= _createDio();
+
+  /// 是否已初始化
+  bool get isInitialized => _dio != null;
+
+  /// 创建 Dio 实例
+  Dio _createDio() {
+    return Dio(
+      BaseOptions(
+        baseUrl: NetworkConfig.baseUrlDev,
+        connectTimeout:
+            Duration(milliseconds: NetworkConfig.connectTimeout),
+        receiveTimeout:
+            Duration(milliseconds: NetworkConfig.receiveTimeout),
+        sendTimeout: Duration(milliseconds: NetworkConfig.sendTimeout),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    )..interceptors.addAll(_getDefaultInterceptors());
+  }
 
   /// 初始化 Dio 客户端
   void initialize({
     String? baseUrl,
     List<Interceptor>? interceptors,
   }) {
+    // 如果已经初始化，直接返回
+    if (isInitialized) {
+      return;
+    }
+
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl ?? NetworkConfig.baseUrlDev,
@@ -39,10 +65,15 @@ class DioClient {
     );
 
     // 添加拦截器
-    _dio.interceptors.addAll([
+    _dio!.interceptors.addAll([
       ...?interceptors,
       ..._getDefaultInterceptors(),
     ]);
+  }
+
+  /// 重置（主要用于测试）
+  void reset() {
+    _dio = null;
   }
 
   /// 获取默认拦截器链

@@ -11,7 +11,11 @@ void main() {
 
     setUp(() {
       dioClient = DioClient();
-      dioClient.initialize();
+      dioClient.reset(); // 重置状态
+    });
+
+    tearDown(() {
+      dioClient.reset(); // 测试后重置
     });
 
     test('should be a singleton', () {
@@ -24,7 +28,7 @@ void main() {
     test('should initialize with default base URL', () {
       dioClient.initialize();
 
-      expect(dioClient.dio, isNotNull);
+      expect(dioClient.isInitialized, isTrue);
       expect(
         dioClient.dio.options.baseUrl,
         equals(NetworkConfig.baseUrlDev),
@@ -73,6 +77,27 @@ void main() {
       dioClient.initialize();
 
       expect(dioClient.dio.interceptors.length, greaterThan(0));
+    });
+
+    test('should not reinitialize if already initialized', () {
+      dioClient.initialize(baseUrl: 'https://first-url.com');
+      dioClient.initialize(baseUrl: 'https://second-url.com');
+
+      // 应该保持第一次的配置
+      expect(
+        dioClient.dio.options.baseUrl,
+        equals('https://first-url.com'),
+      );
+    });
+
+    test('should lazily initialize when accessing dio', () {
+      expect(dioClient.isInitialized, isFalse);
+
+      // 访问 dio 属性会触发懒加载
+      final dio = dioClient.dio;
+
+      expect(dioClient.isInitialized, isTrue);
+      expect(dio, isNotNull);
     });
   });
 
