@@ -1,24 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/user/presentation/screens/user_list_screen.dart';
+import '../../shared/widgets/app_error.dart';
+import 'route_names.dart';
 
 /// 路由配置
 final goRouter = GoRouter(
   debugLogDiagnostics: true,
-  initialLocation: '/',
+  initialLocation: RoutePaths.home,
   routes: [
     // 首页 - 用户列表
     GoRoute(
-      path: '/',
-      name: 'home',
+      path: RoutePaths.home,
+      name: RouteNames.home,
       builder: (context, state) => const UserListScreen(),
     ),
     // 用户详情
     GoRoute(
-      path: '/users/:id',
-      name: 'user-detail',
+      path: RoutePaths.userDetail,
+      name: RouteNames.userDetail,
       builder: (context, state) {
-        final id = int.parse(state.pathParameters['id']!);
+        // 安全解析参数
+        final idStr = state.pathParameters[RouteParams.userId];
+        final id = int.tryParse(idStr ?? '');
+        if (id == null) {
+          return const AppError(
+            message: '无效的用户ID',
+            fullScreen: true,
+          );
+        }
         return UserDetailScreen(userId: id);
       },
     ),
@@ -40,7 +50,7 @@ final goRouter = GoRouter(
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () => context.go('/'),
+            onPressed: () => context.go(RoutePaths.home),
             child: const Text('返回首页'),
           ),
         ],

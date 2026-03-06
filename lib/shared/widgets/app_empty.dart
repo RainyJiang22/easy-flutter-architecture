@@ -40,33 +40,41 @@ class AppEmpty extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final displayMessage = message ?? '暂无数据';
 
-    final widget = Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: iconSize,
-          color: iconColor ?? colorScheme.outline,
+    final widget = Semantics(
+      label: displayMessage,
+      hint: actionText != null ? '双击$actionText' : null,
+      button: actionText != null,
+      child: ExcludeSemantics(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: iconSize,
+              color: iconColor ?? colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              displayMessage,
+              style: textTheme.bodyLarge?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (actionText != null && onAction != null) ...[
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.refresh),
+                label: Text(actionText!),
+              ),
+            ],
+          ],
         ),
-        const SizedBox(height: 16),
-        Text(
-          message ?? '暂无数据',
-          style: textTheme.bodyLarge?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        if (actionText != null && onAction != null) ...[
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: onAction,
-            icon: const Icon(Icons.refresh),
-            label: Text(actionText!),
-          ),
-        ],
-      ],
+      ),
     );
 
     if (fullScreen) {

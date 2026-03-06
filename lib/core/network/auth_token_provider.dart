@@ -1,3 +1,5 @@
+import '../constants/app_constants.dart';
+
 /// Token 提供者抽象接口
 ///
 /// 用于解耦网络层与存储层，由应用层实现具体逻辑
@@ -24,8 +26,6 @@ class SecureStorageTokenProvider implements AuthTokenProvider {
   final Future<void> Function(String) delete;
   final Future<void> Function()? onUnauthorizedCallback;
 
-  static const _tokenKey = 'auth_token';
-
   SecureStorageTokenProvider({
     required this.read,
     required this.write,
@@ -34,13 +34,14 @@ class SecureStorageTokenProvider implements AuthTokenProvider {
   });
 
   @override
-  Future<String?> getToken() => read(_tokenKey);
+  Future<String?> getToken() => read(AppConstants.keyAuthToken);
 
   @override
-  Future<void> saveToken(String token) => write(_tokenKey, token);
+  Future<void> saveToken(String token) =>
+      write(AppConstants.keyAuthToken, token);
 
   @override
-  Future<void> clearToken() => delete(_tokenKey);
+  Future<void> clearToken() => delete(AppConstants.keyAuthToken);
 
   @override
   Future<void> onUnauthorized() async {

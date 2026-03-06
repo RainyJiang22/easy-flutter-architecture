@@ -26,29 +26,48 @@ class AppLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final widget = Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: size,
-          height: size,
-          child: CircularProgressIndicator(
-            color: color ?? Theme.of(context).colorScheme.primary,
-            strokeWidth: 3,
-          ),
-        ),
-        if (message != null) ...[
-          const SizedBox(height: 16),
-          Text(
-            message!,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+    // 检查是否启用减少动效
+    final accessibleNavigation = MediaQuery.of(context).accessibleNavigation;
+    final displayMessage = message ?? '加载中';
+
+    final widget = Semantics(
+      label: displayMessage,
+      liveRegion: true, // 屏幕阅读器会播报
+      child: ExcludeSemantics(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (accessibleNavigation)
+              // 减少动效模式：显示静态文本
+              Text(
+                displayMessage,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: color ?? Theme.of(context).colorScheme.primary,
+                    ),
+              )
+            else
+              SizedBox(
+                width: size,
+                height: size,
+                child: CircularProgressIndicator(
+                  color: color ?? Theme.of(context).colorScheme.primary,
+                  strokeWidth: 3,
                 ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ],
+              ),
+            if (message != null && !accessibleNavigation) ...[
+              const SizedBox(height: 16),
+              Text(
+                message!,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
 
     if (fullScreen) {
@@ -80,6 +99,7 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  bool _isAccessibleNavigation = false;
 
   @override
   void initState() {
@@ -87,10 +107,25 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
-    )..repeat();
+    );
     _animation = Tween<double>(begin: -2, end: 2).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 根据系统设置决定是否启用动画
+    final accessibleNavigation = MediaQuery.of(context).accessibleNavigation;
+    if (accessibleNavigation != _isAccessibleNavigation) {
+      _isAccessibleNavigation = accessibleNavigation;
+      if (accessibleNavigation) {
+        _controller.stop();
+      } else {
+        _controller.repeat();
+      }
+    }
   }
 
   @override
@@ -102,6 +137,18 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    // 减少动效模式：显示静态占位
+    if (_isAccessibleNavigation) {
+      return Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+        ),
+      );
+    }
 
     return AnimatedBuilder(
       animation: _animation,
@@ -157,28 +204,35 @@ class ListSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: itemCount,
-      separatorBuilder: (context, index) => SizedBox(height: itemSpacing),
-      itemBuilder: (context, index) {
-        return Container(
-          height: itemHeight,
+    return Semantics(
+      label: '正在加载列表',
+      liveRegion: true,
+      child: ExcludeSemantics(
+        child: ListView.separated(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ShimmerLoading(width: 150, height: 12),
-              SizedBox(height: 8),
-              ShimmerLoading(width: 100, height: 12),
-            ],
-          ),
-        );
-      },
+          itemCount: itemCount,
+          separatorBuilder: (context, index) =>
+              SizedBox(height: itemSpacing),
+          itemBuilder: (context, index) {
+            return Container(
+              height: itemHeight,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerLoading(width: 150, height: 12),
+                  SizedBox(height: 8),
+                  ShimmerLoading(width: 100, height: 12),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

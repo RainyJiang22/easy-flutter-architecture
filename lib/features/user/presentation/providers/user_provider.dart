@@ -1,12 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/user_repository.dart';
-import '../../../../core/di/injection.dart';
-
-/// 用户 Repository Provider
-final userRepositoryProvider = Provider<UserRepository>((ref) {
-  return getIt<UserRepository>();
-});
+import '../../../../core/core.dart';
 
 /// 用户列表状态
 enum UserListStatus { initial, loading, loaded, error }
@@ -66,15 +61,14 @@ class UserListNotifier extends StateNotifier<UserListState> {
 }
 
 /// 用户列表 Provider
+/// 直接使用 GetIt 获取 Repository 实例，避免 Provider 包装层
 final userListProvider =
     StateNotifierProvider<UserListNotifier, UserListState>((ref) {
-  final repository = ref.watch(userRepositoryProvider);
-  return UserListNotifier(repository);
+  return UserListNotifier(getIt<UserRepository>());
 });
 
 /// 用户详情 Provider
-final userDetailProvider = FutureProviderFamily<User?, int>((ref, userId) async {
-  final repository = ref.watch(userRepositoryProvider);
-  final result = await repository.getUserById(userId);
+final userDetailProvider = FutureProvider.autoDispose.family<User?, int>((ref, userId) async {
+  final result = await getIt<UserRepository>().getUserById(userId);
   return result.dataOrNull;
 });

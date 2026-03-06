@@ -36,34 +36,44 @@ class AppError extends StatelessWidget {
 
     final errorMessage = _getErrorMessage();
 
-    final widget = Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 80, color: colorScheme.error),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Text(
-            errorMessage,
-            style: textTheme.bodyLarge?.copyWith(color: colorScheme.error),
-            textAlign: TextAlign.center,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
+    final widget = Semantics(
+      label: '错误: $errorMessage',
+      hint: onRetry != null ? '双击重试' : null,
+      liveRegion: true, // 错误信息需要即时播报
+      button: onRetry != null,
+      child: ExcludeSemantics(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 80, color: colorScheme.error),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                errorMessage,
+                style: textTheme.bodyLarge?.copyWith(color: colorScheme.error),
+                textAlign: TextAlign.center,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('重试'),
+              ),
+            ],
+          ],
         ),
-        if (onRetry != null) ...[
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('重试'),
-          ),
-        ],
-      ],
+      ),
     );
 
-    return fullScreen ? Scaffold(body: Center(child: widget)) : Center(child: widget);
+    return fullScreen
+        ? Scaffold(body: Center(child: widget))
+        : Center(child: widget);
   }
 
   String _getErrorMessage() {

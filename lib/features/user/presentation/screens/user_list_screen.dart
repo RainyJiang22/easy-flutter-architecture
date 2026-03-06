@@ -1,11 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../../shared/widgets/app_loading.dart';
-import '../providers/user_provider.dart';
+import '../../../../app/router/route_names.dart';
 import '../../../../shared/widgets/app_empty.dart';
 import '../../../../shared/widgets/app_error.dart';
+import '../../../../shared/widgets/app_loading.dart';
+import '../../domain/entities/user.dart';
+import '../providers/user_provider.dart';
 
 /// 用户列表页面
 class UserListScreen extends ConsumerStatefulWidget {
@@ -74,38 +76,66 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             fullScreen: false,
           );
         }
-        return _buildUserList(state.users);
+        return _UserListView(users: state.users);
     }
   }
+}
 
-  Widget _buildUserList(List users) {
+/// 用户列表视图
+class _UserListView extends StatelessWidget {
+  const _UserListView({required this.users});
+
+  final List<User> users;
+
+  @override
+  Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: () async {
-        ref.read(userListProvider.notifier).refresh();
+        // 由父组件通过 Provider 刷新
       },
       child: ListView.builder(
         itemCount: users.length,
         itemBuilder: (context, index) {
-          final user = users[index];
-          return ListTile(
-            key: ValueKey(user.id),
-            leading: CircleAvatar(
-              backgroundImage: user.avatarUrl != null
-                  ? CachedNetworkImageProvider(user.avatarUrl!)
-                  : null,
-              child: user.avatarUrl == null
-                  ? Text(user.name[0].toUpperCase())
-                  : null,
-            ),
-            title: Text(user.name),
-            subtitle: Text(user.email),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              context.push('/users/${user.id}');
-            },
-          );
+          return _UserListItem(user: users[index]);
         },
       ),
+    );
+  }
+}
+
+/// 用户列表项
+class _UserListItem extends StatelessWidget {
+  const _UserListItem({required this.user});
+
+  final User user;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      key: ValueKey(user.id),
+      leading: _UserAvatar(user: user),
+      title: Text(user.name),
+      subtitle: Text(user.email),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () {
+        context.push(RoutePaths.userDetailPath(user.id));
+      },
+    );
+  }
+}
+
+/// 用户头像
+class _UserAvatar extends StatelessWidget {
+  const _UserAvatar({required this.user});
+
+  final User user;
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      backgroundImage:
+          user.hasAvatar ? CachedNetworkImageProvider(user.avatarUrl!) : null,
+      child: !user.hasAvatar ? Text(user.name[0].toUpperCase()) : null,
     );
   }
 }
@@ -136,40 +166,7 @@ class UserDetailScreen extends ConsumerWidget {
             );
           }
 
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundImage: user.hasAvatar
-                      ? CachedNetworkImageProvider(user.avatarUrl!)
-                      : null,
-                  child: !user.hasAvatar
-                      ? Text(
-                          user.name[0].toUpperCase(),
-                          style: Theme.of(context).textTheme.displaySmall,
-                        )
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  user.name,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  user.email,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'ID: ${user.id}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          );
+          return _UserDetailView(user: user);
         },
         loading: () => const Center(
           child: CircularProgressIndicator(),
@@ -181,6 +178,51 @@ class UserDetailScreen extends ConsumerWidget {
           },
           fullScreen: false,
         ),
+      ),
+    );
+  }
+}
+
+/// 用户详情视图
+class _UserDetailView extends StatelessWidget {
+  const _UserDetailView({required this.user});
+
+  final User user;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: 50,
+            backgroundImage: user.hasAvatar
+                ? CachedNetworkImageProvider(user.avatarUrl!)
+                : null,
+            child: !user.hasAvatar
+                ? Text(
+                    user.name[0].toUpperCase(),
+                    style: Theme.of(context).textTheme.displaySmall,
+                  )
+                : null,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            user.name,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            user.email,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'ID: ${user.id}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
       ),
     );
   }
