@@ -8,9 +8,8 @@ import '../../../../core/utils/result.dart';
 class UserRepositoryImpl implements UserRepository {
   final UserRemoteDataSource _remoteDataSource;
 
-  UserRepositoryImpl({UserRemoteDataSource? remoteDataSource})
-      : _remoteDataSource =
-            remoteDataSource ?? UserRemoteDataSource();
+  UserRepositoryImpl({required UserRemoteDataSource remoteDataSource})
+      : _remoteDataSource = remoteDataSource;
 
   @override
   Future<Result<List<User>>> getUsers() async {

@@ -42,6 +42,11 @@ dependencies:
   shared_preferences: ^2.2.2
   flutter_secure_storage: ^9.0.0
 
+  # 本地数据库 (Isar)
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  path_provider: ^2.1.1
+
   # 状态管理
   flutter_riverpod: ^2.4.9
 
@@ -53,6 +58,9 @@ dependencies:
 
   # 依赖注入
   get_it: ^7.6.4
+
+  # 网络状态检测
+  connectivity_plus: ^6.0.3
 
 dev_dependencies:
   flutter_test:
@@ -67,6 +75,10 @@ dev_dependencies:
 
   # 测试工具
   mocktail: ^1.0.2
+
+  # Isar 代码生成
+  isar_generator: ^3.1.0+1
+  build_runner: ^2.4.8
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

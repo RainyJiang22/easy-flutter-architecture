@@ -5,8 +5,8 @@ import '../dto/user_dto.dart';
 class UserRemoteDataSource {
   final IApiClient _apiClient;
 
-  UserRemoteDataSource({IApiClient? apiClient})
-      : _apiClient = apiClient ?? ApiClient();
+  UserRemoteDataSource({required IApiClient apiClient})
+      : _apiClient = apiClient;
 
   Future<List<UserDTO>> getUsers() async {
     final result = await _apiClient.get<List<UserDTO>>(

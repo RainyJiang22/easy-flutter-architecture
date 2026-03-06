@@ -89,6 +89,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
         itemBuilder: (context, index) {
           final user = users[index];
           return ListTile(
+            key: ValueKey(user.id),
             leading: CircleAvatar(
               backgroundImage: user.avatarUrl != null
                   ? CachedNetworkImageProvider(user.avatarUrl!)
