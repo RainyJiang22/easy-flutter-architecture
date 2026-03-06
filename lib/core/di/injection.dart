@@ -6,7 +6,9 @@ import '../database/database_interface.dart';
 import '../database/isar_database.dart';
 import '../database/models/user_cache_model.dart';
 import '../network/api_client.dart';
+import '../network/auth_token_provider.dart';
 import '../network/dio_client.dart';
+import '../network/network_config.dart';
 import '../network/network_info.dart';
 import '../storage/secure_storage_impl.dart';
 import '../storage/shared_prefs_storage.dart';
@@ -24,38 +26,27 @@ final getIt = GetIt.instance;
 Future<void> configureDependencies({
   String? baseUrl,
   bool isProduction = false,
+  Future<void> Function()? onUnauthorized,
 }) async {
+  // 设置环境
+  NetworkConfig.production = isProduction;
+
   // ==================== 核心层服务注册 ====================
 
-  // 1. 注册网络层
-  _registerNetworkServices(baseUrl: baseUrl);
-
-  // 2. 注册存储层
+  // 1. 注册存储层（需要先注册，因为网络层依赖）
   await _registerStorageServices();
+
+  // 2. 注册网络层
+  _registerNetworkServices(
+    baseUrl: baseUrl,
+    onUnauthorized: onUnauthorized,
+  );
 
   // 3. 注册数据库
   await _registerDatabaseServices();
 
   // 4. 注册业务层服务
   _registerDomainServices();
-}
-
-/// 注册网络层服务
-void _registerNetworkServices({String? baseUrl}) {
-  // 注册网络状态检测
-  final networkInfo = NetworkInfo();
-  networkInfo.startListening();
-  getIt.registerSingleton<INetworkInfo>(networkInfo);
-
-  // 注册 DioClient 单例
-  getIt.registerSingleton<DioClient>(
-    DioClient()..initialize(baseUrl: baseUrl),
-  );
-
-  // 注册 ApiClient 单例
-  getIt.registerSingleton<IApiClient>(
-    ApiClient(dio: getIt<DioClient>().dio),
-  );
 }
 
 /// 注册存储层服务
@@ -71,6 +62,41 @@ Future<void> _registerStorageServices() async {
   // 注册安全存储
   getIt.registerSingleton<ISecureStorage>(
     SecureStorageImpl(),
+  );
+}
+
+/// 注册网络层服务
+void _registerNetworkServices({
+  String? baseUrl,
+  Future<void> Function()? onUnauthorized,
+}) {
+  // 注册网络状态检测
+  final networkInfo = NetworkInfo();
+  networkInfo.startListening();
+  getIt.registerSingleton<INetworkInfo>(networkInfo);
+
+  // 注册 Token 提供者
+  final secureStorage = getIt<ISecureStorage>();
+  final tokenProvider = SecureStorageTokenProvider(
+    read: secureStorage.read,
+    write: secureStorage.save,
+    delete: secureStorage.delete,
+    onUnauthorizedCallback: onUnauthorized,
+  );
+  getIt.registerSingleton<AuthTokenProvider>(tokenProvider);
+
+  // 注册 DioClient 单例（带 TokenProvider）
+  getIt.registerSingleton<DioClient>(
+    DioClient()
+      ..initialize(
+        baseUrl: baseUrl ?? NetworkConfig.baseUrl,
+        tokenProvider: tokenProvider,
+      ),
+  );
+
+  // 注册 ApiClient 单例
+  getIt.registerSingleton<IApiClient>(
+    ApiClient(dio: getIt<DioClient>().dio),
   );
 }
 

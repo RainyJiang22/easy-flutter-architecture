@@ -9,18 +9,15 @@ class AppInitializer {
   static Future<void> initialize({
     String? baseUrl,
     bool isProduction = false,
+    Future<void> Function()? onUnauthorized,
   }) async {
     WidgetsFlutterBinding.ensureInitialized();
 
-    // 配置依赖注入
+    // 配置依赖注入（包含网络客户端初始化）
     await configureDependencies(
       baseUrl: baseUrl,
       isProduction: isProduction,
-    );
-
-    // 初始化网络客户端
-    getIt<DioClient>().initialize(
-      baseUrl: baseUrl ?? NetworkConfig.baseUrlDev,
+      onUnauthorized: onUnauthorized,
     );
 
     // 其他初始化逻辑

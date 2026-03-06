@@ -6,7 +6,6 @@ import '../../../../shared/widgets/app_loading.dart';
 import '../providers/user_provider.dart';
 import '../../../../shared/widgets/app_empty.dart';
 import '../../../../shared/widgets/app_error.dart';
-import '../../domain/entities/user.dart';
 
 /// 用户列表页面
 class UserListScreen extends ConsumerStatefulWidget {

@@ -8,6 +8,7 @@ export 'di/injection.dart';
 export 'error/exceptions.dart';
 export 'models/page_result.dart';
 export 'network/api_client.dart';
+export 'network/auth_token_provider.dart';
 export 'network/dio_client.dart';
 export 'network/network_config.dart';
 export 'network/network_info.dart';

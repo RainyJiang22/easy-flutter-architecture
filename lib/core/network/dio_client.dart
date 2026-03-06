@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
-import 'network_config.dart';
 import '../error/exceptions.dart';
+import 'auth_token_provider.dart';
+import 'network_config.dart';
 
 /// Dio 单例客户端
 ///
@@ -21,53 +22,49 @@ class DioClient {
   /// 是否已初始化
   bool get isInitialized => _dio != null;
 
+  /// 创建基础配置
+  BaseOptions _createBaseOptions({String? baseUrl}) {
+    return BaseOptions(
+      baseUrl: baseUrl ?? NetworkConfig.baseUrlDev,
+      connectTimeout: const Duration(
+        milliseconds: NetworkConfig.connectTimeout,
+      ),
+      receiveTimeout: const Duration(
+        milliseconds: NetworkConfig.receiveTimeout,
+      ),
+      sendTimeout: const Duration(milliseconds: NetworkConfig.sendTimeout),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    );
+  }
+
   /// 创建 Dio 实例
   Dio _createDio() {
-    return Dio(
-      BaseOptions(
-        baseUrl: NetworkConfig.baseUrlDev,
-        connectTimeout:
-            Duration(milliseconds: NetworkConfig.connectTimeout),
-        receiveTimeout:
-            Duration(milliseconds: NetworkConfig.receiveTimeout),
-        sendTimeout: Duration(milliseconds: NetworkConfig.sendTimeout),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ),
-    )..interceptors.addAll(_getDefaultInterceptors());
+    return Dio(_createBaseOptions())
+      ..interceptors.addAll(_getDefaultInterceptors());
   }
 
   /// 初始化 Dio 客户端
+  ///
+  /// 可自定义 baseUrl 和额外拦截器
   void initialize({
     String? baseUrl,
     List<Interceptor>? interceptors,
+    AuthTokenProvider? tokenProvider,
   }) {
     // 如果已经初始化，直接返回
     if (isInitialized) {
       return;
     }
 
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl ?? NetworkConfig.baseUrlDev,
-        connectTimeout:
-            Duration(milliseconds: NetworkConfig.connectTimeout),
-        receiveTimeout:
-            Duration(milliseconds: NetworkConfig.receiveTimeout),
-        sendTimeout: Duration(milliseconds: NetworkConfig.sendTimeout),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ),
-    );
+    _dio = Dio(_createBaseOptions(baseUrl: baseUrl));
 
     // 添加拦截器
     _dio!.interceptors.addAll([
       ...?interceptors,
-      ..._getDefaultInterceptors(),
+      ..._getDefaultInterceptors(tokenProvider: tokenProvider),
     ]);
   }
 
@@ -77,24 +74,79 @@ class DioClient {
   }
 
   /// 获取默认拦截器链
-  List<Interceptor> _getDefaultInterceptors() {
+  List<Interceptor> _getDefaultInterceptors({AuthTokenProvider? tokenProvider}) {
     return [
-      LogInterceptor(
-        requestHeader: true,
-        requestBody: true,
-        responseHeader: false,
-        responseBody: true,
-        error: true,
-        logPrint: (obj) {
-          // TODO: 集成日志系统后替换
-          // ignore: avoid_print
-          print('[DIO] $obj');
-        },
-      ),
-      AuthInterceptor(),
+      _LoggingInterceptor(),
+      AuthInterceptor(tokenProvider: tokenProvider),
       ErrorInterceptor(),
       RetryInterceptor(),
     ];
+  }
+}
+
+/// 日志拦截器
+///
+/// 根据环境控制日志输出，过滤敏感信息
+class _LoggingInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    // 开发环境打印请求日志
+    if (!NetworkConfig.isProduction) {
+      final sanitizedHeaders = _sanitizeHeaders(options.headers);
+      // ignore: avoid_print
+      print('[DIO] >>> ${options.method} ${options.uri}');
+      // ignore: avoid_print
+      print('[DIO] Headers: $sanitizedHeaders');
+      if (options.data != null) {
+        // ignore: avoid_print
+        print('[DIO] Data: ${_sanitizeData(options.data)}');
+      }
+    }
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    if (!NetworkConfig.isProduction) {
+      // ignore: avoid_print
+      print('[DIO] <<< ${response.statusCode} ${response.requestOptions.uri}');
+    }
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    // ignore: avoid_print
+    print('[DIO] ERROR: ${err.type} ${err.requestOptions.uri}');
+    handler.next(err);
+  }
+
+  /// 过滤敏感 Header
+  Map<String, dynamic> _sanitizeHeaders(Map<String, dynamic>? headers) {
+    if (headers == null) return {};
+    final sanitized = Map<String, dynamic>.from(headers);
+    const sensitiveKeys = ['authorization', 'token', 'password', 'secret'];
+    for (final key in sanitized.keys) {
+      if (sensitiveKeys.any((s) => key.toLowerCase().contains(s))) {
+        sanitized[key] = '***';
+      }
+    }
+    return sanitized;
+  }
+
+  /// 过滤敏感数据
+  dynamic _sanitizeData(dynamic data) {
+    if (data is Map) {
+      final sanitized = Map<String, dynamic>.from(data);
+      const sensitiveKeys = ['password', 'token', 'secret', 'confirmPassword'];
+      for (final key in sanitized.keys) {
+        if (sensitiveKeys.any((s) => key.toLowerCase().contains(s))) {
+          sanitized[key] = '***';
+        }
+      }
+      return sanitized;
+    }
+    return data;
   }
 }
 
@@ -102,14 +154,14 @@ class DioClient {
 ///
 /// 自动添加 Token 到请求头，处理 401 认证失败
 class AuthInterceptor extends Interceptor {
+  final AuthTokenProvider? tokenProvider;
+
+  AuthInterceptor({this.tokenProvider});
+
   @override
-  void onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) {
-    // TODO: 从存储层获取 Token
-    // final token = getIt<ISecureStorage>().read('auth_token');
-    const token = 'your_token_here'; // 临时占位
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    // 从 TokenProvider 获取 Token
+    final token = await tokenProvider?.getToken() ?? '';
 
     if (token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
@@ -119,13 +171,14 @@ class AuthInterceptor extends Interceptor {
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
     // 处理 401 未授权
     if (err.response?.statusCode == 401) {
-      // TODO: 实现 Token 刷新逻辑
-      // 1. 清除本地 Token
-      // 2. 跳转到登录页
-      // 3. 取消当前请求
+      // 清除本地 Token
+      await tokenProvider?.clearToken();
+
+      // 通知认证状态变更（可用于跳转登录页）
+      await tokenProvider?.onUnauthorized();
     }
 
     handler.next(err);
@@ -231,7 +284,7 @@ class ErrorInterceptor extends Interceptor {
 
 /// 重试拦截器
 ///
-/// 对失败请求自动重试（仅幂等方法：GET/PUT/DELETE）
+/// 对失败请求自动重试（仅幂等方法：GET/PUT/DELETE），使用指数退避策略
 class RetryInterceptor extends Interceptor {
   @override
   Future<void> onError(
@@ -259,8 +312,9 @@ class RetryInterceptor extends Interceptor {
       return;
     }
 
-    // 延迟后重试
-    await Future.delayed(Duration(seconds: retryCount + 1));
+    // 指数退避延迟：1s, 2s, 4s...
+    final delaySeconds = 1 << retryCount; // 2^retryCount
+    await Future.delayed(Duration(seconds: delaySeconds));
 
     try {
       // 增加重试计数
