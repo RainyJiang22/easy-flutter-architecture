@@ -7,18 +7,34 @@ abstract class RouteNames {
   /// 首页 - 用户列表
   static const home = 'home';
 
+  /// 设置
+  static const settings = 'settings';
+
+  ///个人中心
+  static const about = 'about';
+
+  static const profile = 'profile';
+
   /// 用户详情
   static const userDetail = 'user-detail';
 }
 
 /// 路由路径常量
-///
 /// 用于 GoRouter 的 path 参数和页面导航
 abstract class RoutePaths {
   RoutePaths._();
 
   /// 首页 - 用户列表
   static const home = '/';
+
+  /// 设置
+  static const settings = '/settings';
+
+  /// 个人中心
+  static const profile = '/profile';
+
+  /// 关于
+  static const about = '/about';
 
   /// 用户详情（带参数）
   static const userDetail = '/users/:id';
